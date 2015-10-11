@@ -1,0 +1,13 @@
+MDP Solution
+
+States:
+Fridge on week N in relation to the users needs.
+
+Action:
+Order item K
+
+T(s, a, s')
+
+
+Reward(s, a)
+TBD

@@ -9,7 +9,7 @@ import problem.Simulator;
 public class Solver {
 	
 	/** The default file to read the user model from. */
-	public static final String DEFAULT_INPUT = "testcases/small-v1.txt";
+	public static final String DEFAULT_INPUT = "testcases/tiny-v1.txt";
 	/** The default file to output to. */
 	public static final String DEFAULT_OUTPUT = "testcases/output.txt";
 	/** The path for the input file. */
