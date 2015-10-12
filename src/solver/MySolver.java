@@ -1,6 +1,7 @@
 package solver;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +32,8 @@ public class MySolver implements OrderingAgent {
 		eatCombs = new ArrayList<>();
 		generateFridgeStates();
 		generateEatStates();
+		System.out.println(transition(combs.get(1), combs.get(0)));
+		System.out.println(Arrays.toString(combs.get(1)) + " " + Arrays.toString(combs.get(0)));
 	}
 	
 	public void doOfflineComputation() {
@@ -156,7 +159,6 @@ public class MySolver implements OrderingAgent {
 	}
 
 	public Double getStateProb(int[] state) {
-
 		Double sum = 0.0;
 		for (int i = 0; i < state.length; i++) {
 			int j = state[i], k = state[i];
@@ -173,11 +175,8 @@ public class MySolver implements OrderingAgent {
 			for (int l = 0; l <= fridge.getMaxItemsPerType(); l++) {
 				if (l <= state[i]) {
 					prodS.add(m.get(l));
-
-//					sum += $.get(l) * SUCCESS;
 				} else {
 					prodF.add(m.get(l));
-//					sum += m.get(l) * FAILURE;
 				}
 			}
 			if (prodF.size() > 0) {
@@ -194,10 +193,46 @@ public class MySolver implements OrderingAgent {
 				}
 				sum += pS * SUCCESS;
 			}
-
-//			sum += probabilities.get(i).get(k, j);
 		}
 		return sum;
+	}
+
+	public Double transition(int[] state, int[] finalState) {
+		Double transistionProb = 0.0;
+
+		ArrayList<Double> probTable = new ArrayList<>();
+		for (int i = 0; i < state.length; i++) {
+			probTable.add(0.0);
+		}
+
+		for (int i = 0; i < state.length; i++) {
+			System.out.println(i);
+			int stateDiff = state[i] - finalState[i];
+
+			List<Double> pr = probabilities.get(i).getRow(state[i]);
+
+			for (int l = 0; l <= fridge.getMaxItemsPerType(); l++) {
+				System.out.printf("state i %d final state i %d i %d l %d\n", state[i], finalState[i], i, l);
+				if (state[i] - l <= finalState[i] && state[i] != 0) {
+					System.out.println("prod");
+					// this probability will take us to at least the final state inventory
+					if (probTable.get(i) == 0) {
+						probTable.set(i, pr.get(l));
+					} else {
+						probTable.set(i, probTable.get(i) * pr.get(l));
+					}
+				}
+
+			}
+
+		}
+
+		for (Double b: probTable) {
+			transistionProb += b;
+		}
+
+
+		return transistionProb;
 	}
 
 }
