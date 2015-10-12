@@ -4,14 +4,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
 import problem.Fridge;
 import problem.Matrix;
 import problem.ProblemSpec;
 
+
 public class MySolver implements OrderingAgent {
-	
+
+	private final int FAILURE = -1;
+	private final int SUCCESS = 0;
+
 	private ProblemSpec spec = new ProblemSpec();
 	private Fridge fridge;
     private List<Matrix> probabilities;
@@ -55,6 +60,7 @@ public class MySolver implements OrderingAgent {
 		}
 		return shopping;
 	}
+
 	/**
 	 * Generate the list of states for policy generation. Yo.
 	 */
@@ -70,7 +76,7 @@ public class MySolver implements OrderingAgent {
 		System.out.println(combs.size() + "\n\n\n");
 		for (int[] x : combs) {
 			System.out.println(Arrays.toString(x));
-			System.out.println("State score " + getStateProb(x));
+//			System.out.println("State score " + getStateProb(x));
 		}
 	}
 
@@ -150,6 +156,7 @@ public class MySolver implements OrderingAgent {
 	}
 
 	public Double getStateProb(int[] state) {
+
 		Double sum = 0.0;
 		for (int i = 0; i < state.length; i++) {
 			int j = state[i], k = state[i];
@@ -158,7 +165,37 @@ public class MySolver implements OrderingAgent {
 			if (k > fridge.getCapacity())
 				k = fridge.getCapacity();
 
-			sum += probabilities.get(i).get(k, j);
+			List<Double> m = probabilities.get(i).getRow(k);
+
+			ArrayList<Double> prodF = new ArrayList<>();
+			ArrayList<Double> prodS = new ArrayList<>();
+
+			for (int l = 0; l <= fridge.getMaxItemsPerType(); l++) {
+				if (l <= state[i]) {
+					prodS.add(m.get(l));
+
+//					sum += $.get(l) * SUCCESS;
+				} else {
+					prodF.add(m.get(l));
+//					sum += m.get(l) * FAILURE;
+				}
+			}
+			if (prodF.size() > 0) {
+				Double pF = 1.0;
+				for (Double p: prodF) {
+					pF *= p;
+				}
+				sum += pF * FAILURE;
+			}
+			if (prodS.size() > 0) {
+				Double pS = 1.0;
+				for (Double p : prodS) {
+					pS *= p;
+				}
+				sum += pS * SUCCESS;
+			}
+
+//			sum += probabilities.get(i).get(k, j);
 		}
 		return sum;
 	}
