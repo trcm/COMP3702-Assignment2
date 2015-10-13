@@ -32,8 +32,8 @@ public class MySolver implements OrderingAgent {
 		eatCombs = new ArrayList<>();
 		generateFridgeStates();
 		generateEatStates();
-		System.out.println(transition(combs.get(1), combs.get(0)));
-		System.out.println(Arrays.toString(combs.get(1)) + " " + Arrays.toString(combs.get(0)));
+		System.out.println(transition(combs.get(7), combs.get(1)));
+		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
 	}
 	
 	public void doOfflineComputation() {
@@ -198,15 +198,18 @@ public class MySolver implements OrderingAgent {
 	}
 
 	public Double transition(int[] state, int[] finalState) {
-		Double transistionProb = 0.0;
 
 		ArrayList<Double> probTable = new ArrayList<>();
 		for (int i = 0; i < state.length; i++) {
-			probTable.add(0.0);
+			if(state[i] == 0)
+				probTable.add(1.0);
+			else
+				probTable.add(0.0);
 		}
-
 		for (int i = 0; i < state.length; i++) {
 			System.out.println(i);
+			if(state[i] == 0)
+				continue;
 			int stateDiff = state[i] - finalState[i];
 
 			List<Double> pr = probabilities.get(i).getRow(state[i]);
@@ -216,23 +219,17 @@ public class MySolver implements OrderingAgent {
 				if (state[i] - l <= finalState[i] && state[i] != 0) {
 					System.out.println("prod");
 					// this probability will take us to at least the final state inventory
-					if (probTable.get(i) == 0) {
-						probTable.set(i, pr.get(l));
-					} else {
-						probTable.set(i, probTable.get(i) * pr.get(l));
-					}
+					probTable.set(i, probTable.get(i) + pr.get(l));
 				}
 
 			}
 
 		}
+		double multi = 1;
+		for(double x: probTable)
+		multi *= x;
 
-		for (Double b: probTable) {
-			transistionProb += b;
-		}
-
-
-		return transistionProb;
+		return multi;
 	}
 
 }
