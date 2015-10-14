@@ -3,6 +3,7 @@ package solver;
 import problem.Fridge;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -12,12 +13,14 @@ public class FridgeState {
 
     private List<Integer> fridgeInventory;
     private List<FridgeState> children;
-    private FridgeState parent;
+    private List<FridgeState> parent;
+    private HashMap<FridgeState, Double> probs;
 
-    public FridgeState(List<Integer> currentInventory, FridgeState parent) {
+    public FridgeState(List<Integer> currentInventory) {
         fridgeInventory = currentInventory;
-        this.parent = parent;
+        parent = new ArrayList<FridgeState>();
         children = new ArrayList<FridgeState>();
+        probs = new HashMap<>();
     }
 
     public List<Integer> getInventory() {
@@ -35,6 +38,19 @@ public class FridgeState {
 
     public List<FridgeState> getChildren() {
         return children;
+    }
+
+    public void addChildren(FridgeState child, Double transProb) {
+        children.add(child);
+        probs.put(child, transProb);
+    }
+
+    public void addParent(FridgeState parent) {
+        this.parent.add(parent);
+    }
+
+    public List<FridgeState> getParents() {
+        return parent;
     }
 
 }
