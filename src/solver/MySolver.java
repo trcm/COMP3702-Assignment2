@@ -23,6 +23,7 @@ public class MySolver implements OrderingAgent {
     private List<Matrix> probabilities;
 	private ArrayList<int[]> combs;
 	private ArrayList<int[]> eatCombs;
+	private FridgeGraph stateGraph;
 	
 	public MySolver(ProblemSpec spec) throws IOException {
 	    this.spec = spec;
@@ -32,8 +33,10 @@ public class MySolver implements OrderingAgent {
 		eatCombs = new ArrayList<>();
 		generateFridgeStates();
 		generateEatStates();
-		System.out.println(transition(combs.get(7), combs.get(1)));
-		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
+		stateGraph = new FridgeGraph();
+		generateFridgeGraph();
+//		System.out.println(transition(combs.get(7), combs.get(1)));
+//		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
 	}
 	
 	public void doOfflineComputation() {
@@ -76,11 +79,11 @@ public class MySolver implements OrderingAgent {
 		}
 		genStates(n, s, 0);
 
-		System.out.println(combs.size() + "\n\n\n");
-		for (int[] x : combs) {
-			System.out.println(Arrays.toString(x));
-//			System.out.println("State score " + getStateProb(x));
-		}
+//		System.out.println(combs.size() + "\n\n\n");
+//		for (int[] x : combs) {
+//			System.out.println(Arrays.toString(x));
+////			System.out.println("State score " + getStateProb(x));
+//		}
 	}
 
 	public void generateEatStates() {
@@ -91,11 +94,11 @@ public class MySolver implements OrderingAgent {
 		}
 		genEatStates(n, s, 0);
 
-		System.out.println("Eat combinations " + eatCombs.size());
-		for (int[] x : eatCombs) {
-			System.out.println(Arrays.toString(x));
-			System.out.println("State score " + getStateProb(x));
-		}
+//		System.out.println("Eat combinations " + eatCombs.size());
+//		for (int[] x : eatCombs) {
+//			System.out.println(Arrays.toString(x));
+//			System.out.println("State score " + getStateProb(x));
+//		}
 
 	}
 
@@ -230,6 +233,46 @@ public class MySolver implements OrderingAgent {
 		multi *= x;
 
 		return multi;
+	}
+
+	public void generateFridgeGraph() {
+		for (int i = 0; i < combs.size(); i++) {
+			stateGraph.addFridge(new FridgeState(combs.get(i)));
+		}
+
+		for (int i = 0; i < combs.size(); i++) {
+			FridgeState current = stateGraph.getNode(combs.get(i));
+			if (current.capacity() == fridge.getCapacity()) {
+				continue;
+			}
+
+			for (int j = 0; j < combs.size(); j++) {
+				FridgeState inner = stateGraph.getNode(combs.get(j));
+				if (current.equals(inner))
+					continue;
+				int maxDiff = 0;
+				boolean t = false;
+				for (int k = 0; k < fridge.getMaxTypes(); k++) {
+					int diff = inner.getInventory()[k] - current.getInventory()[k];
+					if (diff < 0) {
+						t = true;
+						break;
+					}
+					maxDiff += diff;
+				}
+
+				if (maxDiff > fridge.getMaxPurchase() || maxDiff < 0 || t) {
+					continue;
+				}
+
+				Double p = transition(current.getInventory(), inner.getInventory());
+				// add the inner as a child of the parent
+				current.addChildren(inner, 0.0);
+				//add the current as a parent of the inner
+				inner.addParent(current);
+			}
+		}
+
 	}
 
 }
