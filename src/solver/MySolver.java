@@ -24,6 +24,7 @@ public class MySolver implements OrderingAgent {
 	private ArrayList<int[]> combs;
 	private ArrayList<int[]> eatCombs;
 	private FridgeGraph stateGraph;
+	private FridgeGraph eatGraph;
 	
 	public MySolver(ProblemSpec spec) throws IOException {
 	    this.spec = spec;
@@ -34,7 +35,9 @@ public class MySolver implements OrderingAgent {
 		generateFridgeStates();
 		generateEatStates();
 		stateGraph = new FridgeGraph();
+		eatGraph = new FridgeGraph();
 		generateFridgeGraph();
+		generateEatGraph();
 //		System.out.println(transition(combs.get(7), combs.get(1)));
 //		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
 	}
@@ -275,4 +278,43 @@ public class MySolver implements OrderingAgent {
 
 	}
 
+	public void generateEatGraph() {
+
+		for (int i = 0; i < eatCombs.size(); i++) {
+			eatGraph.addFridge(new FridgeState(eatCombs.get(i)));
+		}
+
+		for (int i = 0; i < eatCombs.size(); i++) {
+			FridgeState current = eatGraph.getNode(eatCombs.get(i));
+			if (current.capacity() == 0) {
+				continue;
+			}
+
+			for (int j = 0; j < eatCombs.size(); j++) {
+				FridgeState inner = eatGraph.getNode(eatCombs.get(j));
+				if (current.equals(inner) || inner.capacity() > current.capacity())
+					continue;
+
+
+				boolean t = false;
+				for (int k = 0; k < fridge.getMaxTypes(); k++) {
+					int diff = current.getInventory()[k] - inner.getInventory()[k];
+					if (diff < 0) {
+						t = true;
+						break;
+					}
+				}
+
+				if (t) {
+					continue;
+				}
+
+				Double p = transition(current.getInventory(), inner.getInventory());
+				// add the inner as a child of the parent
+				current.addChildren(inner, p);
+				//add the current as a parent of the inner
+				inner.addParent(current);
+			}
+		}
+	}
 }
