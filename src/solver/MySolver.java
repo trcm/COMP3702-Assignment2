@@ -2,9 +2,7 @@ package solver;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
@@ -39,10 +37,10 @@ public class MySolver implements OrderingAgent {
 		generateFridgeGraph();
 		generateEatGraph();
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 10; i++) {
 			doOfflineComputation();
 		}
-
+		getBestNext(stateGraph.getNode(combs.get(0)));
 //		System.out.println(transition(combs.get(7), combs.get(1)));
 //		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
 	}
@@ -315,6 +313,7 @@ public class MySolver implements OrderingAgent {
 
 	public void generateEatGraph() {
 
+
 		for (int i = 0; i < eatCombs.size(); i++) {
 			eatGraph.addFridge(new FridgeState(eatCombs.get(i)));
 		}
@@ -354,4 +353,57 @@ public class MySolver implements OrderingAgent {
 			}
 		}
 	}
+
+	public void getBestNext(FridgeState current) {
+		// get all the nodes that could be eaten to this node
+		System.out.println("Current has " + current.getChildren().size() + " children");
+		ArrayList<FridgeState> possibleEats = eatGraph.getSpecific(current.getInventory());
+		System.out.println("Best states size " + possibleEats.size());
+		// sort by vi
+		viSort(possibleEats);
+		Collections.reverse(possibleEats);
+
+		System.out.println(possibleEats.get(0).vi + " " + possibleEats.get(possibleEats.size() - 1).vi);
+		System.out.println(Arrays.toString(possibleEats.get(0).getInventory()) + " "
+				+ Arrays.toString(possibleEats.get(possibleEats.size() - 1).getInventory()));
+		// intersect with the states that can be bought to
+		ArrayList<FridgeState> boughtTo = new ArrayList<>();
+
+		// can this be bought to
+		for (FridgeState f: possibleEats) {
+			if (current.inChildren(f)) {
+				System.out.println("It's a boy!");
+				boughtTo.add(f);
+			}
+		}
+		// get the best of this intersection
+
+	}
+
+	public ArrayList<FridgeState> viSort(ArrayList<FridgeState> toSort) {
+
+		if(toSort.size() == 0)
+			return toSort;
+		for (int i = 0; i < toSort.size(); i++) {
+			if (i == toSort.size()-1)  {
+				return toSort;
+			} else {
+				Double viA = toSort.get(i).vi;
+				Double viB = toSort.get(i+1).vi;
+				if (viA > viB) {
+					// swap
+					FridgeState temp = toSort.get(i);
+					toSort.set(i, toSort.get(i + 1));
+					toSort.set(i + 1, temp);
+					viSort(toSort);
+				} else if (viA == viB) {
+					continue;
+				}
+			}
+		}
+		return viSort(toSort);
+
+
+	}
+
 }

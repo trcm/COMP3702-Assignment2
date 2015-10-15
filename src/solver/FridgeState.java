@@ -3,6 +3,7 @@ package solver;
 import problem.Fridge;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -31,9 +32,9 @@ public class FridgeState {
         return this.fridgeInventory;
     }
 
-    public FridgeState getChild(List<Integer> inventory) {
+    public FridgeState getChild(FridgeState f) {
         for (FridgeState c : children) {
-            if (c.getInventory().equals(inventory)) {
+            if (c.getInventory().equals(f.getInventory())) {
                 return c;
             }
         }
@@ -62,6 +63,13 @@ public class FridgeState {
         return IntStream.of(fridgeInventory).sum();
     }
 
-
+    public boolean inChildren(FridgeState p) {
+        for (FridgeState c : children) {
+            if (Arrays.equals(c.getInventory(), p.getInventory())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 }

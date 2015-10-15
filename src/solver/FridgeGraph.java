@@ -1,5 +1,8 @@
 package solver;
 
+import problem.Fridge;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -38,4 +41,18 @@ public class FridgeGraph {
     public ArrayList<FridgeState> getStates() {
         return nodes;
     }
+
+    public ArrayList<FridgeState> getSpecific(int[] inventory) {
+        ArrayList<FridgeState> ret = new ArrayList<FridgeState>();
+
+        for (FridgeState f : nodes) {
+            for (FridgeState c :f.getChildren()) {
+                if (Arrays.equals(c.getInventory(), inventory)) {
+                    ret.add(f);
+                }
+            }
+        }
+        return ret;
+    }
+
 }
