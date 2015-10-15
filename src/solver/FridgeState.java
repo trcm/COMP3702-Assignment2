@@ -17,6 +17,8 @@ public class FridgeState {
     private List<FridgeState> children;
     private List<FridgeState> parent;
     private HashMap<FridgeState, Double> probs;
+    public Double v0;
+    public Double vi;
 
     public FridgeState(int[] currentInventory) {
         fridgeInventory = currentInventory;
@@ -59,5 +61,7 @@ public class FridgeState {
     public int capacity() {
         return IntStream.of(fridgeInventory).sum();
     }
+
+
 
 }

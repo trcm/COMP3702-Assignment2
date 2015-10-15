@@ -38,18 +38,53 @@ public class MySolver implements OrderingAgent {
 		eatGraph = new FridgeGraph();
 		generateFridgeGraph();
 		generateEatGraph();
+
+		for (int i = 0; i < 2; i++) {
+			doOfflineComputation();
+		}
+
 //		System.out.println(transition(combs.get(7), combs.get(1)));
 //		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
 	}
 	
 	public void doOfflineComputation() {
 	    // TODO Write your own code here.
+
+		// generate vi for all states
+		ArrayList<FridgeState> states = eatGraph.getStates();
+
+		for (FridgeState f : states) {
+			if (f.vi != 1000) {
+				f.v0 = f.vi;
+			}
+
+			Double vi = 0.0;
+			ArrayList<Double> bellman = new ArrayList<>();
+
+			List<FridgeState> children = f.getChildren();
+
+			for (FridgeState c: children) {
+				Double temp = transition(f.getInventory(), c.getInventory());
+				bellman.add(transition(f.getInventory(), c.getInventory()) * c.v0);
+			}
+
+			Double sum = 0.0;
+			for (Double b : bellman) {
+				sum += b;
+			}
+			sum = spec.getDiscountFactor() * sum;
+
+			vi = f.v0 + sum;
+			f.vi = vi;
+		}
+
 	}
 	
 	public List<Integer> generateShoppingList(List<Integer> inventory,
 	        int numWeeksLeft) {
 		// Example code that buys one of each item type.
         // TODO Replace this with your own code.
+
 		List<Integer> shopping = new ArrayList<Integer>();
 		int totalItems = 0;
 		for (int i : inventory) {
@@ -213,7 +248,6 @@ public class MySolver implements OrderingAgent {
 				probTable.add(0.0);
 		}
 		for (int i = 0; i < state.length; i++) {
-			System.out.println(i);
 			if(state[i] == 0)
 				continue;
 			int stateDiff = state[i] - finalState[i];
@@ -221,9 +255,7 @@ public class MySolver implements OrderingAgent {
 			List<Double> pr = probabilities.get(i).getRow(state[i]);
 
 			for (int l = 0; l <= fridge.getMaxItemsPerType(); l++) {
-				System.out.printf("state i %d final state i %d i %d l %d\n", state[i], finalState[i], i, l);
 				if (state[i] - l <= finalState[i] && state[i] != 0) {
-					System.out.println("prod");
 					// this probability will take us to at least the final state inventory
 					probTable.set(i, probTable.get(i) + pr.get(l));
 				}
@@ -245,6 +277,8 @@ public class MySolver implements OrderingAgent {
 
 		for (int i = 0; i < combs.size(); i++) {
 			FridgeState current = stateGraph.getNode(combs.get(i));
+			current.v0 = getStateProb(current.getInventory());
+			current.vi = 1000.0;
 			if (current.capacity() == fridge.getCapacity()) {
 				continue;
 			}
@@ -274,6 +308,7 @@ public class MySolver implements OrderingAgent {
 				//add the current as a parent of the inner
 				inner.addParent(current);
 			}
+
 		}
 
 	}
@@ -286,6 +321,8 @@ public class MySolver implements OrderingAgent {
 
 		for (int i = 0; i < eatCombs.size(); i++) {
 			FridgeState current = eatGraph.getNode(eatCombs.get(i));
+			current.v0 = getStateProb(current.getInventory());
+			current.vi = 1000.0;
 			if (current.capacity() == 0) {
 				continue;
 			}

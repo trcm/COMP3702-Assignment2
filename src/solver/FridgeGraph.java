@@ -34,4 +34,8 @@ public class FridgeGraph {
     public boolean contains(FridgeState comp) {
         return nodes.contains(comp);
     }
+
+    public ArrayList<FridgeState> getStates() {
+        return nodes;
+    }
 }
