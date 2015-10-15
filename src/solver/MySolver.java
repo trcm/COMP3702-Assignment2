@@ -377,7 +377,8 @@ public class MySolver implements OrderingAgent {
 			}
 		}
 		// get the best of this intersection
-
+		System.out.println("According to my caluclations, when we hit this state, you're gonna see some serious shit.\n" +
+		Arrays.toString(boughtTo.get(0).getInventory()));
 	}
 
 	public ArrayList<FridgeState> viSort(ArrayList<FridgeState> toSort) {
