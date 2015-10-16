@@ -42,15 +42,13 @@ public class FridgeGraph {
         return nodes;
     }
 
-    public ArrayList<FridgeState> getSpecific(int[] inventory) {
-        ArrayList<FridgeState> ret = new ArrayList<FridgeState>();
+    public FridgeState getSpecific(int[] inventory) {
+        FridgeState ret = null;
 
         for (FridgeState f : nodes) {
-            for (FridgeState c :f.getChildren()) {
-                if (Arrays.equals(c.getInventory(), inventory)) {
-                    ret.add(f);
+                if (Arrays.equals(f.getInventory(), inventory)) {
+                    ret = f;
                 }
-            }
         }
         return ret;
     }

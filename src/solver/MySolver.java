@@ -40,7 +40,7 @@ public class MySolver implements OrderingAgent {
 		for (int i = 0; i < 10; i++) {
 			doOfflineComputation();
 		}
-		getBestNext(stateGraph.getNode(combs.get(0)));
+		FridgeState bestNext = getBestNext(stateGraph.getNode(combs.get(0)));
 //		System.out.println(transition(combs.get(7), combs.get(1)));
 //		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
 	}
@@ -354,31 +354,23 @@ public class MySolver implements OrderingAgent {
 		}
 	}
 
-	public void getBestNext(FridgeState current) {
+	public FridgeState getBestNext(FridgeState current) {
+		System.out.println("I am at");
+		System.out.println(Arrays.toString(current.getInventory()));
 		// get all the nodes that could be eaten to this node
 		System.out.println("Current has " + current.getChildren().size() + " children");
-		ArrayList<FridgeState> possibleEats = eatGraph.getSpecific(current.getInventory());
-		System.out.println("Best states size " + possibleEats.size());
-		// sort by vi
-		viSort(possibleEats);
-		Collections.reverse(possibleEats);
-
-		System.out.println(possibleEats.get(0).vi + " " + possibleEats.get(possibleEats.size() - 1).vi);
-		System.out.println(Arrays.toString(possibleEats.get(0).getInventory()) + " "
-				+ Arrays.toString(possibleEats.get(possibleEats.size() - 1).getInventory()));
-		// intersect with the states that can be bought to
-		ArrayList<FridgeState> boughtTo = new ArrayList<>();
-
-		// can this be bought to
-		for (FridgeState f: possibleEats) {
-			if (current.inChildren(f)) {
-				System.out.println("It's a boy!");
-				boughtTo.add(f);
-			}
+		ArrayList<FridgeState> choices= new ArrayList<FridgeState>();
+		//For all children get them from the eat graph
+		for (FridgeState f: current.getChildren()) {
+			FridgeState choice = eatGraph.getSpecific(f.getInventory());
+			//add them as choices
+			choices.add(choice);
 		}
-		// get the best of this intersection
-		System.out.println("According to my caluclations, when we hit this state, you're gonna see some serious shit.\n" +
-		Arrays.toString(boughtTo.get(0).getInventory()));
+		choices = viSort(choices);
+		//Return the best choice i.e one with lowest score
+		System.out.println("This is my future according to scores!");
+		System.out.println(Arrays.toString(choices.get(choices.size() -1).getInventory()));
+		return choices.get(choices.size() - 1);
 	}
 
 	public ArrayList<FridgeState> viSort(ArrayList<FridgeState> toSort) {
