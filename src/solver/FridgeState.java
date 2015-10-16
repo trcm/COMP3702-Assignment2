@@ -20,12 +20,17 @@ public class FridgeState {
     private HashMap<FridgeState, Double> probs;
     public Double v0;
     public Double vi;
+    public int visited = 1;
 
     public FridgeState(int[] currentInventory) {
         fridgeInventory = currentInventory;
         parent = new ArrayList<FridgeState>();
         children = new ArrayList<FridgeState>();
         probs = new HashMap<>();
+    }
+
+    public void incrementVisit() {
+        visited++;
     }
 
     public int[] getInventory() {

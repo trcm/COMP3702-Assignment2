@@ -1,5 +1,6 @@
 package solver;
 
+import java.beans.Visibility;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.IntStream;
@@ -12,6 +13,7 @@ import problem.ProblemSpec;
 public class MySolver implements OrderingAgent {
 	private final Double FAILURE = -1.0;
 	private final Double SUCCESS = 0.0;
+    private final Double CONSTANT = 1.0;
 
 	private ProblemSpec spec = new ProblemSpec();
 	private Fridge fridge;
@@ -20,6 +22,7 @@ public class MySolver implements OrderingAgent {
 	private ArrayList<int[]> eatCombs;
 	private FridgeGraph stateGraph;
 	private FridgeGraph eatGraph;
+    ArrayList<visitedMemory> visitedGraph;
 	
 	public MySolver(ProblemSpec spec) throws IOException {
 	    this.spec = spec;
@@ -29,17 +32,15 @@ public class MySolver implements OrderingAgent {
 		eatCombs = new ArrayList<>();
 		generateFridgeStates();
 		generateEatStates();
+        visitedGraph = new ArrayList<>();
 		stateGraph = new FridgeGraph();
 		eatGraph = new FridgeGraph();
 		generateFridgeGraph();
 		generateEatGraph();
 
-		for (int i = 0; i < 2; i++) {
-			doOfflineComputation();
-		}
-		FridgeState bestNext = getBestNext(stateGraph.getNode(combs.get(0)));
-//		System.out.println(transition(combs.get(7), combs.get(1)));
-//		System.out.println(Arrays.toString(combs.get(7)) + " " + Arrays.toString(combs.get(1)));
+//////		for (int i = 0; i < 2; i++) {
+////			doOfflineComputation();
+//		}
 	}
 	
 	public void doOfflineComputation() {
@@ -81,22 +82,82 @@ public class MySolver implements OrderingAgent {
         // TODO Replace this with your own code.
 
 		List<Integer> shopping = new ArrayList<Integer>();
-		int totalItems = 0;
-		for (int i : inventory) {
-			totalItems += i;
-		}
+
 		int[] inventoryArray = new int[inventory.size()];
 		for (int x = 0; x < inventory.size(); x++) inventoryArray[x] = inventory.get(x);
 		FridgeState current = stateGraph.getSpecific(inventoryArray);
 		System.out.println(Arrays.toString(current.getInventory()));
-		FridgeState bestNext = getBestNext(current);
+        FridgeState next = mcst(current);
 		for(int i = 0; i < inventory.size(); i++) {
-			shopping.add(bestNext.getInventory()[i] - current.getInventory()[i]);
+			shopping.add(next.getInventory()[i] - inventoryArray[i]);
 		}
 		return shopping;
 	}
 
-	/**
+    private FridgeState mcst(FridgeState current) {
+        List<FridgeState> children = current.getChildren();
+        ArrayList<FridgeState> exploreMe = new ArrayList<FridgeState>();
+        ArrayList<FridgeState> visited = new ArrayList<FridgeState>();
+        FridgeState bestState = null;
+        Double bestScore = null;
+        for(FridgeState x: children) {
+            if(getPreVent(current, x) == null) {
+                exploreMe.add(x);
+            }
+            else {
+                if(bestState == null && getPreVent(current, x) != null) {
+                    bestState = x;
+                    bestScore = getPreVent(current, x).score;
+                }
+                else if(getPreVent(current, x).score > bestScore && getPreVent(current, x) != null) {
+                    bestScore = getPreVent(current,x).score;
+                    bestState = x;
+                }
+            }
+        }
+
+        for(FridgeState x: exploreMe) {
+            visitedMemory memCur = getPreVent(current, x);
+            Double previousVent;
+            if(memCur == null) {
+                memCur = new visitedMemory(current, x, 1.0);
+                visitedGraph.add(memCur);
+                previousVent = 1.0;
+            }
+            else previousVent = memCur.score;
+            double score = getStateProb(x.getInventory()) +
+                    transition(current.getInventory(), x.getInventory()) * spec.getDiscountFactor() +
+            CONSTANT * Math.sqrt(Math.log(current.visited) / previousVent);
+            score *= -1;
+            memCur.incrementScore();
+            memCur.setScore(score);
+            x.incrementVisit();
+            if(bestState == null) {
+                bestState = x;
+                bestScore = memCur.score;
+            }
+            if(memCur.score > bestScore) {
+                bestState = x;
+                bestScore = memCur.score;
+            }
+        }
+        for(FridgeState x: children) {
+
+        }
+        return bestState;
+    }
+
+    private visitedMemory getPreVent(FridgeState a, FridgeState b) {
+        for(visitedMemory x: visitedGraph) {
+            if(x.getStates(a,b))
+                return x;
+        }
+        return null;
+    }
+
+
+
+    /**
 	 * Generate the list of states for policy generation. Yo.
 	 */
 	public void generateFridgeStates() {
