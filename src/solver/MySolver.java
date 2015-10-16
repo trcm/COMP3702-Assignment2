@@ -356,8 +356,11 @@ public class MySolver implements OrderingAgent {
 		for (FridgeState f: current.getChildren()) {
 			FridgeState choice = eatGraph.getSpecific(f.getInventory());
 			//add them as choices
+			if(choice == null)
+				continue;
 			choices.add(choice);
 		}
+		System.out.println(choices.toString());
 		choices = viSort(choices);
 		//Return the best choice i.e one with lowest score
 		System.out.println("This is my future according to scores!");
