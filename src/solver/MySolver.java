@@ -1,9 +1,7 @@
 package solver;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
 import problem.Fridge;
@@ -12,9 +10,8 @@ import problem.ProblemSpec;
 
 
 public class MySolver implements OrderingAgent {
-
-	private final int FAILURE = -1;
-	private final int SUCCESS = 0;
+	private final Double FAILURE = -1.0;
+	private final Double SUCCESS = 0.0;
 
 	private ProblemSpec spec = new ProblemSpec();
 	private Fridge fridge;
@@ -37,7 +34,7 @@ public class MySolver implements OrderingAgent {
 		generateFridgeGraph();
 		generateEatGraph();
 
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 2; i++) {
 			doOfflineComputation();
 		}
 		FridgeState bestNext = getBestNext(stateGraph.getNode(combs.get(0)));
@@ -88,17 +85,13 @@ public class MySolver implements OrderingAgent {
 		for (int i : inventory) {
 			totalItems += i;
 		}
-		
-		int totalShopping = 0;
-		for (int i = 0; i < fridge.getMaxTypes(); i++) {
-			if (totalItems >= fridge.getCapacity() || 
-			        totalShopping >= fridge.getMaxPurchase()) {
-				shopping.add(0);
-			} else {
-				shopping.add(1);
-				totalShopping ++;
-				totalItems ++;
-			}
+		int[] inventoryArray = new int[inventory.size()];
+		for (int x = 0; x < inventory.size(); x++) inventoryArray[x] = inventory.get(x);
+		FridgeState current = stateGraph.getSpecific(inventoryArray);
+		System.out.println(Arrays.toString(current.getInventory()));
+		FridgeState bestNext = getBestNext(current);
+		for(int i = 0; i < inventory.size(); i++) {
+			shopping.add(bestNext.getInventory()[i] - current.getInventory()[i]);
 		}
 		return shopping;
 	}
@@ -198,7 +191,7 @@ public class MySolver implements OrderingAgent {
 	}
 
 	public Double getStateProb(int[] state) {
-		Double sum = 0.0;
+		ArrayList<Double> sum = new ArrayList<Double>();
 		for (int i = 0; i < state.length; i++) {
 			int j = state[i], k = state[i];
 			if (j > 2)
@@ -219,21 +212,20 @@ public class MySolver implements OrderingAgent {
 				}
 			}
 			if (prodF.size() > 0) {
-				Double pF = 1.0;
+				Double pF = 0.0;
 				for (Double p: prodF) {
-					pF *= p;
+					pF += p;
 				}
-				sum += pF * FAILURE;
-			}
-			if (prodS.size() > 0) {
-				Double pS = 1.0;
-				for (Double p : prodS) {
-					pS *= p;
-				}
-				sum += pS * SUCCESS;
+				sum.add(pF);
 			}
 		}
-		return sum;
+		for (int x = 0; x < sum.size() - 1; x++) {
+			sum.set(x+1,sum.get(x+1) * sum.get(x));
+		}
+		if(sum.size() == 0) {
+			return 0.0;
+		}
+		return sum.get((sum.size()-1)) * FAILURE;
 	}
 
 	public Double transition(int[] state, int[] finalState) {
@@ -370,6 +362,7 @@ public class MySolver implements OrderingAgent {
 		//Return the best choice i.e one with lowest score
 		System.out.println("This is my future according to scores!");
 		System.out.println(Arrays.toString(choices.get(choices.size() -1).getInventory()));
+		System.out.println("And my Score is: " + choices.get(choices.size() - 1).vi);
 		return choices.get(choices.size() - 1);
 	}
 
