@@ -125,8 +125,11 @@ public class MySolver implements OrderingAgent {
                 previousVent = 1.0;
             }
             else previousVent = memCur.score;
-            double score = getStateProb(x.getInventory()) +
-                    transition(current.getInventory(), x.getInventory()) * spec.getDiscountFactor() +
+			double sumScore = getStateProb(x.getInventory());
+			for(FridgeState c: x.getChildren()) {
+				sumScore += getStateProb(c.getInventory()) * transition(x.getInventory(), c.getInventory()) * spec.getDiscountFactor();
+			}
+            double score = sumScore +
             CONSTANT * Math.sqrt(Math.log(current.visited) / previousVent);
             score *= -1;
             memCur.incrementScore();
