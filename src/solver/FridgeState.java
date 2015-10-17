@@ -16,6 +16,7 @@ public class FridgeState {
 //    private List<Integer> fridgeInventory;
     private int[] fridgeInventory;
     private List<FridgeState> children;
+    private List<FridgeState> eatChildren;
     private List<FridgeState> parent;
     private HashMap<FridgeState, Double> probs;
     public Double v0;
@@ -26,6 +27,7 @@ public class FridgeState {
         fridgeInventory = currentInventory;
         parent = new ArrayList<FridgeState>();
         children = new ArrayList<FridgeState>();
+        eatChildren = new ArrayList<>();
         probs = new HashMap<>();
     }
 
@@ -50,9 +52,16 @@ public class FridgeState {
         return children;
     }
 
-    public void addChildren(FridgeState child, Double transProb) {
+    public void addChildren(FridgeState child) {
         children.add(child);
-        probs.put(child, transProb);
+    }
+
+    public List<FridgeState> getEatChildren() {
+        return eatChildren;}
+
+    public void addEatChildren(FridgeState x, Double transProb){
+        probs.put(x, transProb);
+        eatChildren.add(x);
     }
 
     public void addParent(FridgeState parent) {

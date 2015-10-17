@@ -19,9 +19,7 @@ public class MySolver implements OrderingAgent {
 	private Fridge fridge;
     private List<Matrix> probabilities;
 	private ArrayList<int[]> combs;
-	private ArrayList<int[]> eatCombs;
 	private FridgeGraph stateGraph;
-	private FridgeGraph eatGraph;
     ArrayList<visitedMemory> visitedGraph;
 	
 	public MySolver(ProblemSpec spec) throws IOException {
@@ -29,14 +27,10 @@ public class MySolver implements OrderingAgent {
 		fridge = spec.getFridge();
         probabilities = spec.getProbabilities();
 		combs = new ArrayList<>();
-		eatCombs = new ArrayList<>();
 		generateFridgeStates();
-		generateEatStates();
         visitedGraph = new ArrayList<>();
 		stateGraph = new FridgeGraph();
-		eatGraph = new FridgeGraph();
 		generateFridgeGraph();
-		generateEatGraph();
 
 //////		for (int i = 0; i < 2; i++) {
 ////			doOfflineComputation();
@@ -47,7 +41,7 @@ public class MySolver implements OrderingAgent {
 	    // TODO Write your own code here.
 
 		// generate vi for all states
-		ArrayList<FridgeState> states = eatGraph.getStates();
+		ArrayList<FridgeState> states = stateGraph.getStates();
 
 		for (FridgeState f : states) {
 			if (f.vi != 1000) {
@@ -89,6 +83,9 @@ public class MySolver implements OrderingAgent {
 		System.out.println(Arrays.toString(current.getInventory()));
         FridgeState next = mcst(current);
 		for(int i = 0; i < inventory.size(); i++) {
+			if(next.getInventory() == null){
+				System.out.println("Yoda");
+			}
 			shopping.add(next.getInventory()[i] - inventoryArray[i]);
 		}
 		return shopping;
@@ -126,7 +123,13 @@ public class MySolver implements OrderingAgent {
             }
             else previousVent = memCur.score;
 			double sumScore = getStateProb(x.getInventory());
-			for(FridgeState c: x.getChildren()) {
+			FridgeState eatChildren = stateGraph.getSpecific(x.getInventory());
+
+			if(eatChildren == null) {
+				System.out.println("Fuck");
+			}
+			List<FridgeState>  eatChildrenIt = eatChildren.getEatChildren();
+			for(FridgeState c:  eatChildrenIt){
 				sumScore += getStateProb(c.getInventory()) * transition(x.getInventory(), c.getInventory()) * spec.getDiscountFactor();
 			}
             double score = sumScore +
@@ -179,21 +182,6 @@ public class MySolver implements OrderingAgent {
 //		}
 	}
 
-	public void generateEatStates() {
-		int[] n = new int[fridge.getMaxTypes()];
-		ArrayList<Integer> s = new ArrayList<>();
-		for (int i = 0; i < fridge.getCapacity(); i++) {
-			s.add(fridge.getMaxItemsPerType());
-		}
-		genEatStates(n, s, 0);
-
-//		System.out.println("Eat combinations " + eatCombs.size());
-//		for (int[] x : eatCombs) {
-//			System.out.println(Arrays.toString(x));
-//			System.out.println("State score " + getStateProb(x));
-//		}
-
-	}
 
 	public int[] genStates(int[] n, ArrayList<Integer> Nr, int idx) {
 
@@ -214,32 +202,6 @@ public class MySolver implements OrderingAgent {
 		return null;
 	}
 
-	public int[] genEatStates(int[] n, ArrayList<Integer> Nr, int idx) {
-
-		if (idx == n.length) {
-			if (IntStream.of(n).sum() <= fridge.getCapacity() * fridge.getMaxItemsPerType()) {
-				int[] t = n.clone();
-				if (!arrContains(eatCombs, t)) {
-					eatCombs.add(t);
-				}
-			}
-			return null;
-		}
-		for (int i = 0; i <= Nr.get(idx); i++) {
-			n[idx] = i;
-			genEatStates(n, Nr, idx + 1);
-		}
-
-		return null;
-	}
-
-	public int fac(int n) {
-		int result = 1;
-		for (int i = n; i > 0; i--) {
-			result = result * i;
-		}
-		return result;
-	}
 
 	public boolean arrContains(ArrayList<int[]> arr, int[] x) {
 		for (int[] i : arr) {
@@ -269,10 +231,11 @@ public class MySolver implements OrderingAgent {
 			ArrayList<Double> prodS = new ArrayList<>();
 
 			for (int l = 0; l <= fridge.getMaxItemsPerType(); l++) {
+				float diff = state[i] - l;
 				if (l <= state[i]) {
 					prodS.add(m.get(l));
 				} else {
-					prodF.add(m.get(l));
+					prodF.add(m.get(l) * FAILURE * Math.abs(diff));
 				}
 			}
 			if (prodF.size() > 0) {
@@ -289,7 +252,7 @@ public class MySolver implements OrderingAgent {
 		if(sum.size() == 0) {
 			return 0.0;
 		}
-		return sum.get((sum.size()-1)) * FAILURE;
+		return sum.get((sum.size()-1));
 	}
 
 	public Double transition(int[] state, int[] finalState) {
@@ -333,6 +296,32 @@ public class MySolver implements OrderingAgent {
 			FridgeState current = stateGraph.getNode(combs.get(i));
 			current.v0 = getStateProb(current.getInventory());
 			current.vi = 1000.0;
+
+			for (int j = 0; j < combs.size(); j++) {
+				FridgeState inner = stateGraph.getNode(combs.get(j));
+				if (current.equals(inner) || inner.capacity() > current.capacity())
+					continue;
+
+
+				boolean t = false;
+				for (int k = 0; k < fridge.getMaxTypes(); k++) {
+					int diff = current.getInventory()[k] - inner.getInventory()[k];
+					if (diff < 0) {
+						t = true;
+						break;
+					}
+				}
+
+				if (t) {
+					continue;
+				}
+
+				Double p = transition(current.getInventory(), inner.getInventory());
+				// add the inner as a child of the parent
+				current.addEatChildren(inner, p);
+				//add the current as a parent of the inner
+				inner.addParent(current);
+			}
 			if (current.capacity() == fridge.getCapacity()) {
 				continue;
 			}
@@ -358,7 +347,7 @@ public class MySolver implements OrderingAgent {
 
 				Double p = transition(current.getInventory(), inner.getInventory());
 				// add the inner as a child of the parent
-				current.addChildren(inner, 0.0);
+				current.addChildren(inner);
 				//add the current as a parent of the inner
 				inner.addParent(current);
 			}
@@ -367,71 +356,6 @@ public class MySolver implements OrderingAgent {
 
 	}
 
-	public void generateEatGraph() {
-
-
-		for (int i = 0; i < eatCombs.size(); i++) {
-			eatGraph.addFridge(new FridgeState(eatCombs.get(i)));
-		}
-
-		for (int i = 0; i < eatCombs.size(); i++) {
-			FridgeState current = eatGraph.getNode(eatCombs.get(i));
-			current.v0 = getStateProb(current.getInventory());
-			current.vi = 1000.0;
-			if (current.capacity() == 0) {
-				continue;
-			}
-
-			for (int j = 0; j < eatCombs.size(); j++) {
-				FridgeState inner = eatGraph.getNode(eatCombs.get(j));
-				if (current.equals(inner) || inner.capacity() > current.capacity())
-					continue;
-
-
-				boolean t = false;
-				for (int k = 0; k < fridge.getMaxTypes(); k++) {
-					int diff = current.getInventory()[k] - inner.getInventory()[k];
-					if (diff < 0) {
-						t = true;
-						break;
-					}
-				}
-
-				if (t) {
-					continue;
-				}
-
-				Double p = transition(current.getInventory(), inner.getInventory());
-				// add the inner as a child of the parent
-				current.addChildren(inner, p);
-				//add the current as a parent of the inner
-				inner.addParent(current);
-			}
-		}
-	}
-
-	public FridgeState getBestNext(FridgeState current) {
-		System.out.println("I am at");
-		System.out.println(Arrays.toString(current.getInventory()));
-		// get all the nodes that could be eaten to this node
-		System.out.println("Current has " + current.getChildren().size() + " children");
-		ArrayList<FridgeState> choices= new ArrayList<FridgeState>();
-		//For all children get them from the eat graph
-		for (FridgeState f: current.getChildren()) {
-			FridgeState choice = eatGraph.getSpecific(f.getInventory());
-			//add them as choices
-			if(choice == null)
-				continue;
-			choices.add(choice);
-		}
-		System.out.println(choices.toString());
-		choices = viSort(choices);
-		//Return the best choice i.e one with lowest score
-		System.out.println("This is my future according to scores!");
-		System.out.println(Arrays.toString(choices.get(choices.size() -1).getInventory()));
-		System.out.println("And my Score is: " + choices.get(choices.size() - 1).vi);
-		return choices.get(choices.size() - 1);
-	}
 
 	public ArrayList<FridgeState> viSort(ArrayList<FridgeState> toSort) {
 
