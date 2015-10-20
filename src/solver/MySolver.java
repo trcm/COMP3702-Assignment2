@@ -13,7 +13,7 @@ import problem.ProblemSpec;
 public class MySolver implements OrderingAgent {
 	private final Double FAILURE = 1.0;
 	private final Double SUCCESS = 0.0;
-    private final Double CONSTANT = 1.0;
+    private final Double CONSTANT = Math.sqrt(2);
 
 	private ProblemSpec spec = new ProblemSpec();
 	private Fridge fridge;
@@ -133,7 +133,7 @@ public class MySolver implements OrderingAgent {
 			FridgeState eatChildren = stateGraph.getSpecific(x.getInventory());
 
 			if(eatChildren == null) {
-				System.out.println("Fuck");
+				System.out.println("Need to check why a child isnt found");
 			}
 			List<FridgeState>  eatChildrenIt = eatChildren.getEatChildren();
 			for(FridgeState c:  eatChildrenIt){
