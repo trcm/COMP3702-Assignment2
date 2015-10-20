@@ -11,7 +11,7 @@ import problem.ProblemSpec;
 
 
 public class MySolver implements OrderingAgent {
-	private final Double FAILURE = -1.0;
+	private final Double FAILURE = 1.0;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = 1.0;
 
@@ -92,6 +92,13 @@ public class MySolver implements OrderingAgent {
 	}
 
     private FridgeState mcst(FridgeState current) {
+		int inFridge = 0;
+		for(int x: current.getInventory()) {
+			inFridge += x;
+			if(inFridge == fridge.getCapacity()) {
+				return current;
+			}
+		}
         List<FridgeState> children = current.getChildren();
         ArrayList<FridgeState> exploreMe = new ArrayList<FridgeState>();
         ArrayList<FridgeState> visited = new ArrayList<FridgeState>();
@@ -134,7 +141,7 @@ public class MySolver implements OrderingAgent {
 			}
             double score = sumScore +
             CONSTANT * Math.sqrt(Math.log(current.visited) / previousVent);
-            score *= -1;
+            //score *= -1;
             memCur.incrementScore();
             memCur.setScore(score);
             x.incrementVisit();
@@ -218,41 +225,23 @@ public class MySolver implements OrderingAgent {
 
 	public Double getStateProb(int[] state) {
 		ArrayList<Double> sum = new ArrayList<Double>();
-		for (int i = 0; i < state.length; i++) {
-			int j = state[i], k = state[i];
-			if (j > 2)
-				j = 2;
-			if (k > fridge.getCapacity())
-				k = fridge.getCapacity();
-
-			List<Double> m = probabilities.get(i).getRow(k);
-
-			ArrayList<Double> prodF = new ArrayList<>();
-			ArrayList<Double> prodS = new ArrayList<>();
-
-			for (int l = 0; l <= fridge.getMaxItemsPerType(); l++) {
-				float diff = state[i] - l;
-				if (l <= state[i]) {
-					prodS.add(m.get(l));
-				} else {
-					prodF.add(m.get(l) * FAILURE * Math.abs(diff));
+		int y = 0;
+		for(int x: state) {
+			double probF = 0.0;
+			List<Double> m = probabilities.get(y).getRow(x);
+			for(int k = 0;k < fridge.getMaxItemsPerType() + 1; k++) {
+				int diff = x - k;
+				if(diff <= 0) {
+					probF += Math.abs(diff)*FAILURE*m.get(k);
 				}
 			}
-			if (prodF.size() > 0) {
-				Double pF = 0.0;
-				for (Double p: prodF) {
-					pF += p;
-				}
-				sum.add(pF);
-			}
+			sum.add(probF);
+		y++;
 		}
-		for (int x = 0; x < sum.size() - 1; x++) {
-			sum.set(x+1,sum.get(x+1) * sum.get(x));
-		}
-		if(sum.size() == 0) {
-			return 0.0;
-		}
-		return sum.get((sum.size()-1));
+		double totalSum = 0;
+		for(double x: sum)
+			totalSum += x;
+		return totalSum * -1;
 	}
 
 	public Double transition(int[] state, int[] finalState) {
@@ -276,13 +265,11 @@ public class MySolver implements OrderingAgent {
 					// this probability will take us to at least the final state inventory
 					probTable.set(i, probTable.get(i) + pr.get(l));
 				}
-
 			}
-
 		}
 		double multi = 1;
 		for(double x: probTable)
-		multi *= x;
+			multi *= x;
 
 		return multi;
 	}
