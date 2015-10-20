@@ -46,14 +46,14 @@ public class Fridge {
 			maxTypes = 5;
 			maxItemsPerType = 2;
 		} else if (name.equals("medium")) {
-			capacity = 10;
-			maxOrder = 7;
-			maxTypes = 10;
+			capacity = 7;
+			maxOrder = 5;
+			maxTypes = 7;
 			maxItemsPerType = 2;
 		} else if (name.equals("large")) {
-			capacity = 20;
-			maxOrder = 12;
-			maxTypes = 25;
+			capacity = 10;
+			maxOrder = 8;
+			maxTypes = 12;
 			maxItemsPerType = 3;
 		} else if (name.equals("super")) {
 			capacity = 40;
