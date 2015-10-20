@@ -136,9 +136,9 @@ public class MySolver implements OrderingAgent {
 				System.out.println("Need to check why a child isnt found");
 			}
 			List<FridgeState>  eatChildrenIt = eatChildren.getEatChildren();
-			for(FridgeState c:  eatChildrenIt){
-				sumScore += getStateProb(c.getInventory()) * transition(x.getInventory(), c.getInventory()) * spec.getDiscountFactor();
-			}
+			//for(FridgeState c:  eatChildrenIt){
+			//	sumScore += getStateProb(c.getInventory()) * transition(x.getInventory(), c.getInventory()) * spec.getDiscountFactor();
+			//}
             double score = sumScore +
             CONSTANT * Math.sqrt(Math.log(current.visited) / previousVent);
             //score *= -1;
@@ -233,6 +233,9 @@ public class MySolver implements OrderingAgent {
 				int diff = x - k;
 				if(diff <= 0) {
 					probF += Math.abs(diff)*FAILURE*m.get(k);
+				}
+				else{
+					probF += SUCCESS;
 				}
 			}
 			sum.add(probF);
