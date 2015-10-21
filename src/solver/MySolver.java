@@ -8,12 +8,16 @@ import java.util.stream.IntStream;
 import problem.Fridge;
 import problem.Matrix;
 import problem.ProblemSpec;
+import java.math.*;
 
 
 public class MySolver implements OrderingAgent {
 	private final Double FAILURE = 1.0;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = Math.sqrt(2);
+	private final int ITERATION = 20;
+
+	private Random random = new Random();
 
 	private ProblemSpec spec = new ProblemSpec();
 	private Fridge fridge;
@@ -129,21 +133,29 @@ public class MySolver implements OrderingAgent {
                 previousVent = 1.0;
             }
             else previousVent = memCur.score;
-			double sumScore = getStateProb(x.getInventory());
-			FridgeState eatChildren = stateGraph.getSpecific(x.getInventory());
-
-			if(eatChildren == null) {
-				System.out.println("Need to check why a child isnt found");
+			//Store scores in array
+			double[] allScores = new double[ITERATION];
+			for(int y = 0; y < ITERATION; y++) {
+				//Perform simulations on how well current child will perform on average
+				//This is the same function the simulator uses to eat food
+				List<Integer> eaten = sampleUserWants(x.getInventory());
+				//Compute score based on failures
+				double scoreCurrent = 0.0;
+				for(int z = 0; z < eaten.size(); z++) {
+					int diff = x.getInventory()[z] - eaten.get(z);
+					if(diff < 0) {
+						scoreCurrent += Math.abs(diff)*FAILURE;
+					}
+				}
+				allScores[y] = scoreCurrent;
 			}
-			List<FridgeState>  eatChildrenIt = eatChildren.getEatChildren();
-//			for(FridgeState c:  eatChildrenIt){
-//				sumScore += .001*(getStateProb(c.getInventory()) * transition(x.getInventory(), c.getInventory()) * spec.getDiscountFactor());
-//			}
-            double score = sumScore +
-            CONSTANT * Math.sqrt(Math.log(current.visited) / previousVent);
-            //score *= -1;
+			//Find average score
+			double sum = 0.0;
+			for(double y: allScores)
+					sum += y;
+			sum = (sum / ITERATION) * -1;
             memCur.incrementScore();
-            memCur.setScore(score);
+            memCur.setScore(sum);
             x.incrementVisit();
             if(bestState == null) {
                 bestState = x;
@@ -245,6 +257,38 @@ public class MySolver implements OrderingAgent {
 		for(double x: sum)
 			totalSum += x;
 		return totalSum * -1;
+	}
+
+	/**
+	 * Copy of sampleUserWants from simulator for our own simulations
+	 * @param state
+	 * @return
+	 */
+	public List<Integer> sampleUserWants(int[] state) {
+		List<Integer> wants = new ArrayList<Integer>();
+		for (int k = 0; k < fridge.getMaxTypes(); k++) {
+			int i = state[k];
+			List<Double> prob = probabilities.get(k).getRow(i);
+			wants.add(sampleIndex(prob));
+		}
+		return wants;
+	}
+
+	/**
+	 * Takes a list of probability and returns how many items eaten
+	 * @param prob
+	 * @return
+	 */
+	public int sampleIndex(List<Double> prob) {
+		double sum = 0;
+		double r = random.nextDouble();
+		for (int i = 0; i < prob.size(); i++) {
+			sum += prob.get(i);
+			if (sum >= r) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	public Double transition(int[] state, int[] finalState) {
