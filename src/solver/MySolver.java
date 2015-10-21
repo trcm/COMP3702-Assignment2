@@ -17,6 +17,8 @@ public class MySolver implements OrderingAgent {
     private final Double CONSTANT = Math.sqrt(2);
 	private final int ITERATION = 20;
 
+	private int weeksRemaining;
+
 	private Random random = new Random();
 
 	private ProblemSpec spec = new ProblemSpec();
@@ -35,6 +37,7 @@ public class MySolver implements OrderingAgent {
         visitedGraph = new ArrayList<>();
 		stateGraph = new FridgeGraph();
 		generateFridgeGraph();
+		weeksRemaining = spec.getNumWeeks();
 
 //////		for (int i = 0; i < 2; i++) {
 ////			doOfflineComputation();
@@ -92,10 +95,15 @@ public class MySolver implements OrderingAgent {
 			}
 			shopping.add(next.getInventory()[i] - inventoryArray[i]);
 		}
+		weeksRemaining--;
 		return shopping;
 	}
 
-    private FridgeState mcst(FridgeState current) {
+	private FridgeState mcst(FridgeState current) {
+
+		if (IntStream.of(current.getInventory()).sum() == fridge.getCapacity())
+			return current;
+
 		int inFridge = 0;
 		for(int x: current.getInventory()) {
 			inFridge += x;
@@ -103,74 +111,103 @@ public class MySolver implements OrderingAgent {
 				return current;
 			}
 		}
-        List<FridgeState> children = current.getChildren();
-        ArrayList<FridgeState> exploreMe = new ArrayList<FridgeState>();
-        ArrayList<FridgeState> visited = new ArrayList<FridgeState>();
-        FridgeState bestState = null;
-        Double bestScore = null;
-        for(FridgeState x: children) {
-            if(getPreVent(current, x) == null) {
-                exploreMe.add(x);
-            }
-            else {
-                if(bestState == null && getPreVent(current, x) != null) {
-                    bestState = x;
-                    bestScore = getPreVent(current, x).score;
-                }
-                else if(getPreVent(current, x).score > bestScore && getPreVent(current, x) != null) {
-                    bestScore = getPreVent(current,x).score;
-                    bestState = x;
-                }
-            }
-        }
+		List<FridgeState> children = current.getChildren();
+		ArrayList<FridgeState> exploreMe = new ArrayList<FridgeState>();
+		ArrayList<FridgeState> visited = new ArrayList<FridgeState>();
+		FridgeState bestState = null;
+		Double bestScore = 0.0;
 
-        for(FridgeState x: exploreMe) {
-            visitedMemory memCur = getPreVent(current, x);
-            Double previousVent;
-            if(memCur == null) {
-                memCur = new visitedMemory(current, x, 1.0);
-                visitedGraph.add(memCur);
-                previousVent = 1.0;
-            }
-            else previousVent = memCur.score;
-			//Store scores in array
-			double[] allScores = new double[ITERATION];
-			for(int y = 0; y < ITERATION; y++) {
-				//Perform simulations on how well current child will perform on average
-				//This is the same function the simulator uses to eat food
-				List<Integer> eaten = sampleUserWants(x.getInventory());
-				//Compute score based on failures
-				double scoreCurrent = 0.0;
-				for(int z = 0; z < eaten.size(); z++) {
-					int diff = x.getInventory()[z] - eaten.get(z);
-					if(diff < 0) {
-						scoreCurrent += Math.abs(diff)*FAILURE;
+		checkScores(current);
+
+//        for(FridgeState x: children) {
+//            visitedMemory memCur = getPreVent(current, x);
+//            Double previousVent;
+//            if(memCur == null) {
+//                memCur = new visitedMemory(current, x, 1.0);
+//                visitedGraph.add(memCur);
+//                previousVent = 1.0;
+//            }
+//            else previousVent = memCur.score;
+//			//Store scores in array
+//			double sum = getSimProb(x);
+//            memCur.incrementScore();
+//            memCur.setScore(sum);
+//            x.incrementVisit();
+//            if(bestState == null) {
+//                bestState = x;
+//                bestScore = memCur.score;
+//            }
+//            if(memCur.score > bestScore) {
+//                bestState = x;
+//                bestScore = memCur.score;
+//            }
+//        }
+
+		List<Double> scores = new ArrayList<Double>();
+		HashMap<FridgeState, Double> stateScores = new HashMap<>();
+		for(FridgeState x: children) {
+			checkScores(x);
+
+			visitedMemory memCur = getPreVent(current, x);
+			double simScore = memCur.score;
+			ArrayList<Double> weekScores = new ArrayList<Double>();
+
+			FridgeState c = x;
+
+			for (int j = 0; j < ITERATION; j++) {
+				for (int i = weeksRemaining; i >= 0; i--) {
+					// simulate shopping
+					Pair sim = getSimInventory(c);
+					FridgeState b = stateGraph.getSpecific(sim.inventory);
+					checkScores(b);
+
+					List<FridgeState> bC = b.getChildren();
+
+					for(FridgeState y: bC) {
+						memCur = getPreVent(b, y);
+						//Store scores in array
+						double sum = getSimProb(c);
+						memCur.incrementScore();
+						memCur.setScore(sum);
+						y.incrementVisit();
+						if(bestState == null) {
+							bestState = y;
+							bestScore = memCur.score;
+						}
+						if(memCur.score > bestScore) {
+							bestState = y;
+							bestScore = memCur.score;
+						}
 					}
+					simScore += bestScore;
+					c = bestState;
 				}
-				allScores[y] = scoreCurrent;
+				weekScores.add(simScore);
 			}
-			//Find average score
 			double sum = 0.0;
-			for(double y: allScores)
-					sum += y;
-			sum = (sum / ITERATION) * -1;
-            memCur.incrementScore();
-            memCur.setScore(sum);
-            x.incrementVisit();
-            if(bestState == null) {
-                bestState = x;
-                bestScore = memCur.score;
-            }
-            if(memCur.score > bestScore) {
-                bestState = x;
-                bestScore = memCur.score;
-            }
-        }
-        for(FridgeState x: children) {
+			for(double y: weekScores)
+				sum += y;
+			sum = (sum / children.size()) * -1;
+			scores.add(sum);
+			stateScores.put(x, sum);
+		}
 
-        }
-        return bestState;
-    }
+		Iterator it = stateScores.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry pair = (Map.Entry)it.next();
+
+			if (bestState == null) {
+				bestState = (FridgeState)pair.getKey();
+				bestScore = (Double)pair.getValue();
+			} else if ((Double)pair.getValue() > bestScore) {
+				bestState = (FridgeState)pair.getKey();
+				bestScore = (Double)pair.getValue();
+			}
+			it.remove(); // avoids a ConcurrentModificationException
+		}
+
+		return bestState;
+	}
 
     private visitedMemory getPreVent(FridgeState a, FridgeState b) {
         for(visitedMemory x: visitedGraph) {
@@ -180,7 +217,63 @@ public class MySolver implements OrderingAgent {
         return null;
     }
 
+	private double getSimProb(FridgeState x) {
+		double[] allScores = new double[ITERATION];
+		for(int y = 0; y < ITERATION; y++) {
+			//Perform simulations on how well current child will perform on average
+			//This is the same function the simulator uses to eat food
+			List<Integer> eaten = sampleUserWants(x.getInventory());
+			//Compute score based on failures
+			double scoreCurrent = 0.0;
+			for(int z = 0; z < eaten.size(); z++) {
+				int diff = x.getInventory()[z] - eaten.get(z);
+				if(diff < 0) {
+					scoreCurrent += Math.abs(diff)*FAILURE;
+				}
+			}
+			allScores[y] = scoreCurrent;
+		}
+		//Find average score
+		double sum = 0.0;
+		for(double y: allScores)
+			sum += y;
+		sum = (sum / ITERATION) * -1;
+		return sum;
+	}
 
+	private Pair getSimInventory(FridgeState x) {
+		//Perform simulations on how well current child will perform on average
+		//This is the same function the simulator uses to eat food
+		List<Integer> eaten = sampleUserWants(x.getInventory());
+		//Compute score based on failures
+		double scoreCurrent = 0.0;
+		int[] diff = new int[fridge.getMaxTypes()];
+		for(int z = 0; z < eaten.size(); z++) {
+			diff[z] = x.getInventory()[z] - eaten.get(z);
+
+			if(diff[z] < 0) {
+				scoreCurrent += Math.abs(diff[z])*FAILURE;
+				diff[z] = 0;
+			}
+		}
+
+		return new Pair(diff, scoreCurrent);
+	}
+
+	private void checkScores(FridgeState current) {
+
+		List<FridgeState> children = current.getChildren();
+
+        for(FridgeState x: children) {
+
+            if(getPreVent(current, x) == null) {
+				// generate score
+				double prob = getSimProb(x);
+				visitedMemory memCur = new visitedMemory(current, x, prob);
+				visitedGraph.add(memCur);
+            }
+        }
+	}
 
     /**
 	 * Generate the list of states for policy generation. Yo.

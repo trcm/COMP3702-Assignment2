@@ -12,7 +12,8 @@ public class visitedMemory {
     public visitedMemory(FridgeState a, FridgeState b, Double score) {
         this.a = a;
         this.b = b;
-        this.visit = score;
+        this.visit = 0.0;
+        this.score = score;
     }
 
     public boolean getStates(FridgeState a, FridgeState b) {
