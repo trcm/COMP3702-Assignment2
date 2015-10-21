@@ -15,7 +15,7 @@ public class MySolver implements OrderingAgent {
 	private final Double FAILURE = 1.0;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = Math.sqrt(2);
-	private final int ITERATION = 20;
+	private final int ITERATION = 50;
 
 	private int weeksRemaining;
 
@@ -168,19 +168,20 @@ public class MySolver implements OrderingAgent {
 						//Store scores in array
 						double sum = getSimProb(c);
 						memCur.incrementScore();
-						memCur.setScore(sum);
+//						memCur.setScore(sum);
 						y.incrementVisit();
 						if(bestState == null) {
 							bestState = y;
 							bestScore = memCur.score;
 						}
-						if(memCur.score > bestScore) {
+						if(memCur.score < bestScore) {
 							bestState = y;
 							bestScore = memCur.score;
 						}
 					}
 					simScore += bestScore;
 					c = bestState;
+					x.incrementVisit();
 				}
 				weekScores.add(simScore);
 			}
@@ -189,21 +190,24 @@ public class MySolver implements OrderingAgent {
 				sum += y;
 			sum = (sum / children.size()) * -1;
 			scores.add(sum);
+			sum = sum * CONSTANT * Math.sqrt(Math.log(x.visited) / memCur.visit);
 			stateScores.put(x, sum);
 		}
 
 		Iterator it = stateScores.entrySet().iterator();
+		double test = 0.0;
+		bestState = null;
 		while (it.hasNext()) {
 			Map.Entry pair = (Map.Entry)it.next();
 
 			if (bestState == null) {
 				bestState = (FridgeState)pair.getKey();
-				bestScore = (Double)pair.getValue();
-			} else if ((Double)pair.getValue() > bestScore) {
+				test = (Double)pair.getValue();
+			} else if ((Double)pair.getValue() > test) {
 				bestState = (FridgeState)pair.getKey();
-				bestScore = (Double)pair.getValue();
+				test = (Double)pair.getValue();
 			}
-			it.remove(); // avoids a ConcurrentModificationException
+			// avoids a ConcurrentModificationException
 		}
 
 		return bestState;
@@ -237,7 +241,7 @@ public class MySolver implements OrderingAgent {
 		double sum = 0.0;
 		for(double y: allScores)
 			sum += y;
-		sum = (sum / ITERATION) * -1;
+		sum = (sum / ITERATION);
 		return sum;
 	}
 
