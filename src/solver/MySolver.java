@@ -12,10 +12,11 @@ import java.math.*;
 
 
 public class MySolver implements OrderingAgent {
-	private final Double FAILURE = 1.0;
+	private final Double FAILURE = 5.0;
+	private final Double DFAILURE = 10.0;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = Math.sqrt(2);
-	private final int ITERATION = 20;
+	private final int ITERATION = 100;
 
 	private Random random = new Random();
 
@@ -144,7 +145,10 @@ public class MySolver implements OrderingAgent {
 				for(int z = 0; z < eaten.size(); z++) {
 					int diff = x.getInventory()[z] - eaten.get(z);
 					if(diff < 0) {
-						scoreCurrent += Math.abs(diff)*FAILURE;
+						if(diff > 1)
+							scoreCurrent += Math.abs(diff)*DFAILURE;
+						else
+							scoreCurrent += Math.abs(diff)*FAILURE;
 					}
 				}
 				allScores[y] = scoreCurrent;
@@ -155,7 +159,8 @@ public class MySolver implements OrderingAgent {
 					sum += y;
 			sum = (sum / ITERATION) * -1;
             memCur.incrementScore();
-            memCur.setScore(sum);
+			memCur.setScore(sum);
+//            memCur.setScore(sum * CONSTANT * Math.sqrt(Math.log(x.visited) / memCur.visit));
             x.incrementVisit();
             if(bestState == null) {
                 bestState = x;
@@ -165,9 +170,6 @@ public class MySolver implements OrderingAgent {
                 bestState = x;
                 bestScore = memCur.score;
             }
-        }
-        for(FridgeState x: children) {
-
         }
         return bestState;
     }
