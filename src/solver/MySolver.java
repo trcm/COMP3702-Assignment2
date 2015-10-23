@@ -12,11 +12,12 @@ import java.math.*;
 
 
 public class MySolver implements OrderingAgent {
-	private final Double FAILURE = 5.0;
-	private final Double DFAILURE = 10.0;
+	private final Double FAILURE = 1.0;
+	private final Double DFAILURE = 1.0;
+	private final Double APPLE = Math.PI;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = Math.sqrt(2);
-	private final int ITERATION = 100;
+	private final int ITERATION = 50;
 
 	private Random random = new Random();
 
@@ -37,8 +38,8 @@ public class MySolver implements OrderingAgent {
 		stateGraph = new FridgeGraph();
 		generateFridgeGraph();
 
-//////		for (int i = 0; i < 2; i++) {
-////			doOfflineComputation();
+//		for (int i = 0; i < 2; i++) {
+//			doOfflineComputation();
 //		}
 	}
 	
@@ -136,28 +137,66 @@ public class MySolver implements OrderingAgent {
             else previousVent = memCur.score;
 			//Store scores in array
 			double[] allScores = new double[ITERATION];
+			HashMap<int[], Integer> allDIffs = new HashMap<int[], Integer>();
+			double childScores = 0.0;
 			for(int y = 0; y < ITERATION; y++) {
 				//Perform simulations on how well current child will perform on average
 				//This is the same function the simulator uses to eat food
 				List<Integer> eaten = sampleUserWants(x.getInventory());
 				//Compute score based on failures
 				double scoreCurrent = 0.0;
+				int[] diff = new int[fridge.getMaxTypes()];
 				for(int z = 0; z < eaten.size(); z++) {
-					int diff = x.getInventory()[z] - eaten.get(z);
-					if(diff < 0) {
-						if(diff > 1)
-							scoreCurrent += Math.abs(diff)*DFAILURE;
-						else
-							scoreCurrent += Math.abs(diff)*FAILURE;
+					diff[z] = x.getInventory()[z] - eaten.get(z);
+					if(diff[z] < 0)
+						scoreCurrent += Math.abs(diff[z])*FAILURE;
+					if(allDIffs.get(diff) == null) {
+						allDIffs.put(diff, 1);
+					}
+					else{
+						allDIffs.replace(diff,allDIffs.get(diff) + 1);
 					}
 				}
 				allScores[y] = scoreCurrent;
+				//Visit every eat child in the hashmap
+				Iterator it = allDIffs.entrySet().iterator();
+				while (it.hasNext()) {
+					Map.Entry pair = (Map.Entry)it.next();
+					int chance = ITERATION / (int)pair.getValue();
+					double[] currentChildScore = new double[ITERATION];
+					for(int k = 0; k < ITERATION; k++) {
+						//Perform simulations on how well current child will perform on average
+						//This is the same function the simulator uses to eat food
+
+						int[] keyArray = (int[])pair.getKey();
+						for (int j = 0; j < keyArray.length; j++) {
+							if (keyArray[j] < 0)
+								keyArray[j] = 0;
+						}
+						List<Integer> childEaten = sampleUserWants(stateGraph.getSpecific((int[])pair.getKey()).getInventory());
+						//Compute score based on failures
+						int[] childDiff = new int[fridge.getMaxTypes()];
+						double currentScore = 0.0;
+						for (int z = 0; z < eaten.size(); z++) {
+							childDiff[z] = keyArray[z] - childEaten.get(z);
+							if (childDiff[z] < 0)
+								currentScore += Math.abs(childDiff[z]) * FAILURE;
+						}
+						currentChildScore[k] = currentScore;
+
+					}
+					double sum = 0.0;
+					for(double p: currentChildScore)
+						sum += p;
+					sum = (sum / ITERATION) * -1;
+					childScores += chance * sum;
+				}
 			}
 			//Find average score
 			double sum = 0.0;
 			for(double y: allScores)
 					sum += y;
-			sum = (sum / ITERATION) * -1;
+			sum = (sum / ITERATION) * -1 +childScores;
             memCur.incrementScore();
 			memCur.setScore(sum);
 //            memCur.setScore(sum * CONSTANT * Math.sqrt(Math.log(x.visited) / memCur.visit));
