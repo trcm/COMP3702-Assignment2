@@ -12,10 +12,10 @@ import java.math.*;
 
 
 public class MySolver implements OrderingAgent {
-	private final Double FAILURE = 1.0;
+	private final Double FAILURE = 10.0;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = Math.sqrt(2);
-	private final int ITERATION = 50;
+	private final int ITERATION = 100;
 
 	private int weeksRemaining;
 
@@ -39,9 +39,6 @@ public class MySolver implements OrderingAgent {
 		generateFridgeGraph();
 		weeksRemaining = spec.getNumWeeks();
 
-//////		for (int i = 0; i < 2; i++) {
-////			doOfflineComputation();
-//		}
 	}
 	
 	public void doOfflineComputation() {
@@ -104,13 +101,6 @@ public class MySolver implements OrderingAgent {
 		if (IntStream.of(current.getInventory()).sum() == fridge.getCapacity())
 			return current;
 
-		int inFridge = 0;
-		for(int x: current.getInventory()) {
-			inFridge += x;
-			if(inFridge == fridge.getCapacity()) {
-				return current;
-			}
-		}
 		List<FridgeState> children = current.getChildren();
 		ArrayList<FridgeState> exploreMe = new ArrayList<FridgeState>();
 		ArrayList<FridgeState> visited = new ArrayList<FridgeState>();
@@ -119,32 +109,8 @@ public class MySolver implements OrderingAgent {
 
 		checkScores(current);
 
-//        for(FridgeState x: children) {
-//            visitedMemory memCur = getPreVent(current, x);
-//            Double previousVent;
-//            if(memCur == null) {
-//                memCur = new visitedMemory(current, x, 1.0);
-//                visitedGraph.add(memCur);
-//                previousVent = 1.0;
-//            }
-//            else previousVent = memCur.score;
-//			//Store scores in array
-//			double sum = getSimProb(x);
-//            memCur.incrementScore();
-//            memCur.setScore(sum);
-//            x.incrementVisit();
-//            if(bestState == null) {
-//                bestState = x;
-//                bestScore = memCur.score;
-//            }
-//            if(memCur.score > bestScore) {
-//                bestState = x;
-//                bestScore = memCur.score;
-//            }
-//        }
-
-		List<Double> scores = new ArrayList<Double>();
 		HashMap<FridgeState, Double> stateScores = new HashMap<>();
+
 		for(FridgeState x: children) {
 			checkScores(x);
 
@@ -152,10 +118,11 @@ public class MySolver implements OrderingAgent {
 			double simScore = memCur.score;
 			ArrayList<Double> weekScores = new ArrayList<Double>();
 
-			FridgeState c = x;
 
 			for (int j = 0; j < ITERATION; j++) {
-				for (int i = weeksRemaining; i >= 0; i--) {
+				FridgeState c = x;
+
+				for (int i = 0; i < weeksRemaining; i++) {
 					// simulate shopping
 					Pair sim = getSimInventory(c);
 					FridgeState b = stateGraph.getSpecific(sim.inventory);
@@ -163,12 +130,14 @@ public class MySolver implements OrderingAgent {
 
 					List<FridgeState> bC = b.getChildren();
 
+					if (bC == null)
+						continue;
+
 					for(FridgeState y: bC) {
 						memCur = getPreVent(b, y);
 						//Store scores in array
-						double sum = getSimProb(c);
 						memCur.incrementScore();
-//						memCur.setScore(sum);
+
 						y.incrementVisit();
 						if(bestState == null) {
 							bestState = y;
@@ -179,7 +148,11 @@ public class MySolver implements OrderingAgent {
 							bestScore = memCur.score;
 						}
 					}
-					simScore += bestScore;
+					if (bestState == null) {
+						continue;
+					}
+					simScore += sim.score * Math.pow(spec.getDiscountFactor(), i);
+//					simScore += bestScore;
 					c = bestState;
 					x.incrementVisit();
 				}
@@ -189,8 +162,7 @@ public class MySolver implements OrderingAgent {
 			for(double y: weekScores)
 				sum += y;
 			sum = (sum / children.size()) * -1;
-			scores.add(sum);
-			sum = sum * CONSTANT * Math.sqrt(Math.log(x.visited) / memCur.visit);
+			sum = sum + CONSTANT * Math.sqrt(Math.log(x.visited) / memCur.visit);
 			stateScores.put(x, sum);
 		}
 
@@ -248,6 +220,8 @@ public class MySolver implements OrderingAgent {
 	private Pair getSimInventory(FridgeState x) {
 		//Perform simulations on how well current child will perform on average
 		//This is the same function the simulator uses to eat food
+		if (x == null)
+			System.out.println();
 		List<Integer> eaten = sampleUserWants(x.getInventory());
 		//Compute score based on failures
 		double scoreCurrent = 0.0;

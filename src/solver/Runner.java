@@ -9,7 +9,7 @@ import problem.Simulator;
 
 public class Runner {
 	/** The default file to read the user model from. */
-	public static String DEFAULT_INPUT = "testcases/tiny-v1.txt";
+	public static String DEFAULT_INPUT = "testcases/small-v1.txt";
 	/** The default file to output to. */
 	public static String DEFAULT_OUTPUT = "testcases/output.txt";
 	/** The path for the input file. */
@@ -20,7 +20,7 @@ public class Runner {
 	/** The default number of simulations to run. */
 	public static int DEFAULT_NUM_SIMULATIONS = 1;
 	/** The number of simulations to run. */
-	private static int numSimulations = 0; 
+	private static int numSimulations = 100;
 	
 	/** The default solver to use. */
 	public static String DEFAULT_SOLVER = "solver.MySolver";
@@ -39,7 +39,7 @@ public class Runner {
 		
 		double totalPenalty = 0;
 		double totalMaxPenalty = 0;
-		
+		double success = 0;
 		Simulator simulator = new Simulator(spec);
 		OrderingAgent solver = null;
 		if (!RECREATE_SOLVER) {
@@ -65,6 +65,9 @@ public class Runner {
 			
 			totalPenalty += simulator.getTotalPenalty();
 			totalMaxPenalty += simulator.getTotalMaxPenalty();
+			if (simulator.getTotalPenalty() / simulator.getTotalMaxPenalty() < 0.3) {
+				success++;
+			}
 			System.out.println("-----------------------------------------------------------");
 		}
 		
@@ -74,6 +77,7 @@ public class Runner {
 		System.out.printf("Total penalty: %f\n", -totalPenalty);
 		System.out.printf("Total maximum penalty: %f\n", -totalMaxPenalty);
 		System.out.printf("Overall penalty ratio: %f\n", totalPenalty / totalMaxPenalty);
+		System.out.printf("Total successes %f\n", success);
 	}
 	
 	/**
