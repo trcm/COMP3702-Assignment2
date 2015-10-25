@@ -151,7 +151,8 @@ public class MySolver implements OrderingAgent {
 					if (bestState == null) {
 						continue;
 					}
-					simScore += sim.score * Math.pow(spec.getDiscountFactor(), i);
+					simScore += getStateProb(c.getInventory()) * Math.pow(spec.getDiscountFactor(), i);
+//					simScore += sim.score * Math.pow(spec.getDiscountFactor(), i);
 //					simScore += bestScore;
 					c = bestState;
 					x.incrementVisit();
@@ -253,6 +254,21 @@ public class MySolver implements OrderingAgent {
         }
 	}
 
+	private void checkScoresChildren(FridgeState current) {
+		List<FridgeState> children = current.getChildren();
+
+		for(FridgeState x: children){
+			double prob = getStateProb(x.getInventory());
+			if(getPreVent(current, x) == null) {
+				visitedMemory memCur = new visitedMemory(current, x, prob);
+				visitedGraph.add(memCur);
+			}
+			else {
+				getPreVent(current, x).setScore(prob);
+			}
+		}
+	}
+
     /**
 	 * Generate the list of states for policy generation. Yo.
 	 */
@@ -314,11 +330,8 @@ public class MySolver implements OrderingAgent {
 			List<Double> m = probabilities.get(y).getRow(x);
 			for(int k = 0;k < fridge.getMaxItemsPerType() + 1; k++) {
 				int diff = x - k;
-				if(diff <= 0) {
+				if(diff < 0) {
 					probF += Math.abs(diff)*FAILURE*m.get(k);
-				}
-				else{
-					probF += SUCCESS;
 				}
 			}
 			sum.add(probF);
@@ -327,7 +340,7 @@ public class MySolver implements OrderingAgent {
 		double totalSum = 0;
 		for(double x: sum)
 			totalSum += x;
-		return totalSum * -1;
+		return totalSum;
 	}
 
 	/**
