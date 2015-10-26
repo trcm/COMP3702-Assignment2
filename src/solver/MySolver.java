@@ -15,7 +15,7 @@ public class MySolver implements OrderingAgent {
 	private final Double FAILURE = 10.0;
 	private final Double SUCCESS = 0.0;
     private final Double CONSTANT = Math.sqrt(2);
-	private final int ITERATION = 100;
+	private final int ITERATION = 1;
 
 	private int weeksRemaining;
 
@@ -118,11 +118,18 @@ public class MySolver implements OrderingAgent {
 			double simScore = memCur.score;
 			ArrayList<Double> weekScores = new ArrayList<Double>();
 
-
 			for (int j = 0; j < ITERATION; j++) {
 				FridgeState c = x;
-
-				for (int i = 0; i < weeksRemaining; i++) {
+				int weekCount = weeksRemaining;
+				switch (fridge.getName()) {
+					case "medium":
+						weekCount = 1;
+						break;
+					case "large":
+						weekCount = 1;
+						break;
+				}
+				for (int i = 0; i < weekCount; i++) {
 					// simulate shopping
 					Pair sim = getSimInventory(c);
 					FridgeState b = stateGraph.getSpecific(sim.inventory);
